@@ -37,3 +37,11 @@ Previous MAF tutorials, including not only the [tutorial notebooks in sims_MAF-c
 | | 9. Turning complex metrics into scalars with "reduce" functions | A description of "reduce" functions of MAF metrics, which transform metric values with non-scalar values into differenc metrics with scalar values; and an example implementation of such. |
 | | 10. Metrics for use with spatial slicers | Discussion of implementing metrics that create maps of values over position on the sky. | 
 | | 11. What columns and stackers can I use? | Shows how to list input values that are available to metrics. |
+| [03_Plotting.ipynb](03_Plotting.ipynb) | 1. Notebook preparation | Imports and other necessary preparation for the notebook|
+| | 2. Basic plotting with defaults | Basic plotting examples, including showing what the default plots are for a given slicer. |
+| | 3. Changing which plotters are used | An example of changing to plotting with non-default plotters. |
+| | 4. Customizing plot parameters | Examples of customizing plots using `plotDict`s. |
+| | 5. Available plotters | Instructions for listing and getting help on plotters supplied with `rubin_sim`. |
+| | 6. Writing a new plotter | Instructions and an example writing a new plotter. |
+| | 7. Overplotting multiple metrics | An example of overplotting multiple metrics on the same figure. |
+
