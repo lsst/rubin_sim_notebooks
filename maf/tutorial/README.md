@@ -8,7 +8,7 @@ Previous MAF tutorials, including not only the [tutorial notebooks in sims_MAF-c
 
 | Notebook | Section | Description |
 |---|---|---|
-| 01_Introduction_to_MAF.ipynb | 1 Basic Concepts |  |
+| [01_Introduction_to_MAF.ipynb](01_Introduction_to_MAF.ipynb) | 1 Basic Concepts |  |
 | | 1.1 Prerequisites | Links to tutorials on assumed background, including how to use `jupyter` notebooks. |
 | | 1.2 Essential elements |  A table of basic MAF architectural elements, and descriptions of what the are and what they are for. |
 | | 1.3 A typical MAF workflow | A list of steps typically followed in the use of MAF. | 
