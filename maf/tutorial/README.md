@@ -13,7 +13,7 @@ Previous MAF tutorials, including not only the [tutorial notebooks in sims_MAF-c
 | | 1.2 Essential elements |  A table of basic MAF architectural elements, and descriptions of what the are and what they are for. |
 | | 1.3 A typical MAF workflow | A list of steps typically followed in the use of MAF. | 
 | | 2. Notebook preliminaries | Preparation of the notebook, including instructions for installing MAF and importing needed modules. |
-| | 3. A detailed example | the histogram of airmass of visits in g |
+| | 3. A detailed example | Make a histogram of airmass of visits in g |
 | | 3.1 Computing the metric | A walk throught the steps is computing a metric an a simulation. | 
 | | 3.2 Making a plot | Shows how to plot a mertric with the example of a histogram of numbers of visits in g. | 
 | | 3.3 Using metric values and slice points directly | Shows how to get access to the metric data itself as `numpy.array`s for further use by arbitrary python tools. |
