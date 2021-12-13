@@ -25,7 +25,9 @@ def make_open_shutter_bundle(run_name):
     plotDict = {}
     slicer = maf.UniSlicer()
     metric = maf.OpenShutterFractionMetric(
-        slewTimeCol="slewTime", expTimeCol="visitExposureTime", visitTimeCol="visitTime"
+        slewTimeCol="slewTime",
+        expTimeCol="visitExposureTime",
+        visitTimeCol="visitTime",
     )
     summary_metrics = [maf.IdentityMetric()]
     bundle = maf.MetricBundle(
@@ -111,7 +113,9 @@ def make_airmass_bundle(run_name):
     """
     constraint = ""
     plotDict = {}
-    slicer = maf.OneDSlicer(sliceColName="airmass", binMin=1.0, binMax=2.5, binsize=0.05)
+    slicer = maf.OneDSlicer(
+        sliceColName="airmass", binMin=1.0, binMax=2.5, binsize=0.05
+    )
     metric = maf.CountMetric(col="airmass")
 
     # produces list of metrics with mean, median, RMS, etc.
@@ -166,7 +170,9 @@ def sample_batch(run_name="opsim", bands=("g", "i"), footprint_area=18000):
     return bundle_dict
 
 
-def compute_metrics(opsim_runs, opsim_run_fnames, data_dir, batch_name=""):
+def compute_metrics(
+    opsim_runs, opsim_run_fnames, data_dir, batch_factory, batch_name=""
+):
     """Run batches of metrics on a collection of runs.
 
     Parameters
@@ -177,6 +183,8 @@ def compute_metrics(opsim_runs, opsim_run_fnames, data_dir, batch_name=""):
         Keys are run names, values of the file name of the opsim output.
     data_dir : `str`
         Directory into which to make subdirectories with output
+    batch_factory : `Callable`
+        A function that takes a run name and returns bundle dict.
     batch_name : `str`
         The name of the batch
 
@@ -197,13 +205,17 @@ def compute_metrics(opsim_runs, opsim_run_fnames, data_dir, batch_name=""):
         out_dir = os.path.join(data_dir, run_name, batch_name)
         results_db = maf.ResultsDb(outDir=out_dir)
 
-        this_batch = sample_batch(run_name)
+        this_batch = batch_factory(run_name)
         this_batch.update(maf.filtersPerNight(runName=run_name))
         bundle_group = maf.MetricBundleGroup(
             this_batch, dbObj=opsim_db, outDir=out_dir, resultsDb=results_db
         )
         bundle_group.runAll()
         bundle_group.plotAll()
+        results_db.close()
+        maf.writeConfigs(opsim_db, out_dir)
+        opsim_db.close()
+
         batches[run_name] = this_batch
 
     return batches
@@ -223,8 +235,12 @@ def main(*args, **kwargs):
     command line. They are useful here to support testing.
     """
     parser = ArgumentParser(description="Run sample MAF batches in bulk")
-    parser.add_argument("out_dir", type=str, help="base output directory for results")
-    parser.add_argument("in_files", type=str, nargs="*", help="opsim files to process")
+    parser.add_argument(
+        "out_dir", type=str, help="base output directory for results"
+    )
+    parser.add_argument(
+        "in_files", type=str, nargs="*", help="opsim files to process"
+    )
     args = parser.parse_args(*args, **kwargs)
 
     out_dir = args.out_dir
@@ -235,7 +251,9 @@ def main(*args, **kwargs):
     opsim_run_fnames = dict(zip(opsim_runs, in_files))
 
     # Actually compute the metrics
-    compute_metrics(opsim_runs, opsim_run_fnames, out_dir, "sample")
+    compute_metrics(
+        opsim_runs, opsim_run_fnames, out_dir, sample_batch, "sample"
+    )
 
     return 0
 
