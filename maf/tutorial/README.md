@@ -48,7 +48,7 @@ Previous MAF tutorials, including not only the [tutorial notebooks in sims_MAF-c
 | | 2. Notebook preparation | Imports and other necessary preparation for the notebook|
 | | 3. Run families | Shows how to load families of runs, get documentation on them, and show the runs they contain.|
 | | 4. Getting a table of runs | Shows how to load a list of all runs, get (brief) documentation on them, URLs from which to download them, and the familes of which they are members. |
-| | 5. Getting summary metrics on runs | SHows how to download high-level summary metrics for opsim runs. |
+| | 5. Getting summary metrics on runs | Shows how to download high-level summary metrics for opsim runs. |
 | | 6. Metric sets | Shows how to download metric set definitions, including lists of metrics that are members of each set.|
 | | 7. Normalizing summary metrics | Shows how to normalize summary metrics such that a value of 1.0 indicates an exact match to the value for a baseline, and values above one are better; below, worse. |
 | | 8. Cartesian plots | Shows how to plot summary metric data on scatter or line plots. | 
