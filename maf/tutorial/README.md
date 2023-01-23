@@ -28,7 +28,7 @@ Previous MAF tutorials, including not only the [tutorial notebooks in sims_MAF-c
 | | 10. Finding available metrics and slicers | Shows how to get help on metrics and slicers already part of the MAF |
 | [02_Writing_Metrics.ipynb](02_Writing_Metrics.ipynb) | 1 Notebook Preparation | Imports and other necessary preparation for the notebook |
 | | 2. Understanding how metrics are called | Text describing how metrics code gets colled within MAF |
-| | 3. Exploring existing metrics | A link to [reference documentation on existing MAF metrics](https://rubin-sim.lsst.io/rs_maf/metricList.html), plus some tricks for exploring the code of these metrics from within jupyter notebooks |
+| | 3. Exploring existing metrics | A link to [reference documentation on existing MAF metrics](https://rubin-sim.lsst.io/rs_maf/metric_list.html), plus some tricks for exploring the code of these metrics from within jupyter notebooks |
 | | 4. An exploratory metric | A test metric that shows how metric code gets called by MAF, what parameters it gets passed, and what it returns |
 | | 5. A Workbook for developing metrics | A link to a [metric development notebook](../science/New%20Metric%20Workbook.ipynb) for template for developing new metrics. |
 | | 6. Applying a metric to the whole set of visits | Demonstration of how to write a metric that doesn't use slices, but instead operates on all visits at once. |
