@@ -130,3 +130,6 @@ dmypy.json
 
 # other
 *pickle
+*.npz
+*.pdf
+*.png
