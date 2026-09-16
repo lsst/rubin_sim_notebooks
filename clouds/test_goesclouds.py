@@ -333,8 +333,8 @@ class TestExtractBandSamples(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             dirname = gc.quarter_directory(2015, 1, 2, 3, data_dir=tmpdir)
             dirname.mkdir(parents=True)
-            values_a = np.arange(16).reshape(4, 4)
-            values_b = np.arange(16, 32).reshape(4, 4)
+            values_a = np.arange(36).reshape(6, 6)
+            values_b = np.arange(36, 72).reshape(6, 6)
             _make_netcdf(
                 dirname / "GOES13_4_2015-01-02T010000.nc", _embed_window(values_a)
             )
@@ -360,8 +360,8 @@ class TestExtractBandSamples(unittest.TestCase):
                 result.index.names,
                 ["year", "month", "sday", "quarter", "time", "pixel"],
             )
-            self.assertEqual(len(result), 32)
-            self.assertEqual(sorted(result.index.get_level_values("pixel").unique()), list(range(16)))
+            self.assertEqual(len(result), 72)
+            self.assertEqual(sorted(result.index.get_level_values("pixel").unique()), list(range(36)))
 
             time_a = pd.Timestamp("2015-01-02T01:00:00")
             time_b = pd.Timestamp("2015-01-02T02:00:00")
@@ -377,7 +377,7 @@ class TestExtractBandSamples(unittest.TestCase):
             good_dir.mkdir(parents=True)
             _make_netcdf(
                 good_dir / "GOES13_4_2015-01-02T010000.nc",
-                _embed_window(np.arange(16).reshape(4, 4)),
+                _embed_window(np.arange(36).reshape(6, 6)),
             )
             (good_dir / "GOES13_4_2015-01-02T020000.nc").write_bytes(b"not a netcdf file")
 
@@ -399,7 +399,7 @@ class TestExtractBandSamples(unittest.TestCase):
             with self.assertLogs(gc.logger, level="WARNING"):
                 result = gc.extract_band_samples(quarters, band=4, data_dir=tmpdir)
 
-            self.assertEqual(len(result), 16)
+            self.assertEqual(len(result), 36)
 
     def test_timestamp_parsing_and_time_as_datetime_flag(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -407,7 +407,7 @@ class TestExtractBandSamples(unittest.TestCase):
             dirname.mkdir(parents=True)
             _make_netcdf(
                 dirname / "GOES13_4_2015-01-02T011904.nc",
-                _embed_window(np.arange(16).reshape(4, 4)),
+                _embed_window(np.arange(36).reshape(6, 6)),
             )
             quarters = pd.DataFrame(
                 {
@@ -437,11 +437,11 @@ class TestExtractBandSamples(unittest.TestCase):
             dirname.mkdir(parents=True)
             _make_netcdf(
                 dirname / "GOES13_4_2015-01-03T013000.nc",
-                _embed_window(np.arange(16).reshape(4, 4)),
+                _embed_window(np.arange(36).reshape(6, 6)),
             )
             _make_netcdf(
                 dirname / "GOES13_4_2015-01-11T013000.nc",
-                _embed_window(np.arange(16, 32).reshape(4, 4)),
+                _embed_window(np.arange(36, 72).reshape(6, 6)),
             )
             quarters = pd.DataFrame(
                 {
@@ -459,12 +459,12 @@ class TestExtractBandSamples(unittest.TestCase):
                 result = gc.extract_band_samples(
                     quarters, band=4, data_dir=tmpdir, max_timestamp_offset_days=2
                 )
-            self.assertEqual(len(result), 16)
+            self.assertEqual(len(result), 36)
 
             result_unfiltered = gc.extract_band_samples(
                 quarters, band=4, data_dir=tmpdir, max_timestamp_offset_days=None
             )
-            self.assertEqual(len(result_unfiltered), 32)
+            self.assertEqual(len(result_unfiltered), 72)
 
     def test_purity_does_not_mutate_input(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -472,7 +472,7 @@ class TestExtractBandSamples(unittest.TestCase):
             dirname.mkdir(parents=True)
             _make_netcdf(
                 dirname / "GOES13_4_2015-01-02T010000.nc",
-                _embed_window(np.arange(16).reshape(4, 4)),
+                _embed_window(np.arange(36).reshape(6, 6)),
             )
             quarters = pd.DataFrame(
                 {
@@ -503,15 +503,15 @@ class TestLoadMultibandSamples(unittest.TestCase):
             # the real 3747/3958 band-2/band-4 split (§3.3).
             _make_netcdf(
                 dirname / "GOES13_4_2015-01-02T010000.nc",
-                _embed_window(np.arange(16).reshape(4, 4)),
+                _embed_window(np.arange(36).reshape(6, 6)),
             )
             _make_netcdf(
                 dirname / "GOES13_4_2015-01-02T020000.nc",
-                _embed_window(np.arange(16, 32).reshape(4, 4)),
+                _embed_window(np.arange(36, 72).reshape(6, 6)),
             )
             _make_netcdf(
                 dirname / "GOES13_2_2015-01-02T010000.nc",
-                _embed_window(np.arange(100, 116).reshape(4, 4)),
+                _embed_window(np.arange(100, 136).reshape(6, 6)),
             )
 
             quarters = pd.DataFrame(
@@ -535,18 +535,18 @@ class TestLoadMultibandSamples(unittest.TestCase):
             self.assertEqual(
                 set(multiband.columns), {("human", "clouds"), (2, "value"), (4, "value")}
             )
-            # No duplicate rows, no dropped rows: 2 timestamps * 16 pixels.
-            self.assertEqual(len(multiband), 32)
+            # No duplicate rows, no dropped rows: 2 timestamps * 36 pixels.
+            self.assertEqual(len(multiband), 72)
             self.assertFalse(multiband.index.duplicated().any())
             self.assertEqual(multiband[(4, "value")].isna().sum(), 0)
-            self.assertEqual(multiband[(2, "value")].isna().sum(), 16)
+            self.assertEqual(multiband[(2, "value")].isna().sum(), 36)
             self.assertTrue((multiband[("human", "clouds")] == 5).all())
 
             time_a = pd.Timestamp("2015-01-02T01:00:00")
             time_b = pd.Timestamp("2015-01-02T02:00:00")
             band2_at_a = multiband.xs(time_a, level="time")[(2, "value")].to_numpy()
             band2_at_b = multiband.xs(time_b, level="time")[(2, "value")].to_numpy()
-            np.testing.assert_array_equal(sorted(band2_at_a), list(range(100, 116)))
+            np.testing.assert_array_equal(sorted(band2_at_a), list(range(100, 136)))
             self.assertTrue(np.isnan(band2_at_b).all())
 
 
@@ -1007,6 +1007,26 @@ class TestPlots(unittest.TestCase):
         fig = gc.plot_estimate_histogram(by_quarter)
         self.assertIsInstance(fig, plt.Figure)
 
+    def test_plot_estimate_histogram_with_quarter_reports(self):
+        band_samples = _make_band_samples()
+        by_quarter = gc.compute_by_quarter(band_samples, "band4", reference_median_value=402)
+
+        # Synthetic quarter_reports spanning several months and cloud levels.
+        idx = pd.MultiIndex.from_tuples(
+            [(2013 + i // 36, 1 + (i // 3) % 12, 1, 1 + i % 3) for i in range(108)],
+            names=["year", "month", "sday", "quarter"],
+        )
+        quarter_reports = pd.DataFrame(
+            {"clouds": [i % 9 for i in range(108)]}, index=idx
+        )
+
+        fig = gc.plot_estimate_histogram(by_quarter, quarter_reports=quarter_reports)
+        self.assertIsInstance(fig, plt.Figure)
+        ax = fig.axes[0]
+        # Two series: the satellite estimate bar and the human step histogram.
+        self.assertEqual(len(ax.lines) + len(ax.patches) > 0, True)
+        self.assertIsNotNone(ax.get_legend())
+
     def test_plot_estimate_agreement(self):
         band_samples = _make_band_samples()
         by_quarter = gc.compute_by_quarter(band_samples, "band4", reference_median_value=402)
@@ -1039,8 +1059,11 @@ class TestPlots(unittest.TestCase):
         self.assertIsInstance(fig, plt.Figure)
         # All 3 pixels must be plotted, not just int(sqrt(3))**2 == 1 of them
         # (goesclouds.md §4.2/§6.3's non-square-count fix).
-        pixel_titles = [ax.get_title() for ax in fig.axes if ax.get_title().startswith("Pixel")]
-        self.assertEqual(len(pixel_titles), 3)
+        pixel_labels = [
+            t.get_text() for ax in fig.axes for t in ax.texts
+            if t.get_text().startswith("Pixel")
+        ]
+        self.assertEqual(len(pixel_labels), 3)
 
 
 class TestMcfetchClient(unittest.TestCase):

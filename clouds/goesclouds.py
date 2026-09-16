@@ -32,6 +32,7 @@ from pathlib import Path
 from urllib.request import urlopen, urlretrieve
 
 import colorcet as cc
+import matplotlib.colors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -51,7 +52,7 @@ SATELLITE_NAME_MCFETCH = "GOES13"   # mcfetch spelling / filename prefix
 CUTOUT_CENTER_PIX = 128
 CUTOUT_SIZE_PIX = "256+256"
 
-DEFAULT_WINDOW_SIZE = 4             # notebook-compatible 4x4 window
+DEFAULT_WINDOW_SIZE = 6             # notebook-compatible 4x4 window
 DEFAULT_BAND = 4
 CORRECTION_BAND = 2
 ALL_BANDS = (2, 4, 6)
@@ -1286,13 +1287,13 @@ def plot_norm_by_quarter(by_quarter, fig=None):
         axes = np.array(fig.axes)
 
     ax = axes[0]
-    by_quarter.boxplot("fraction_above_cloudcut", by="clouds", ax=ax)
+    by_quarter.boxplot("fraction_above_cloudcut", by="clouds", flierprops={'marker': '.', 'alpha': 0.5}, whis=(5, 95), capprops={'linewidth': 0}, medianprops={'color': 'black', 'linewidth': 3}, ax=ax)
     ax.set_title("Boxplot for fraction of GOES pixels by human estimate")
     ax.set_ylabel("Fraction of pixels brighter than the cloudy cutoff")
     ax.set_xlabel("Human estimated cloud fraction (eighths)")
 
     ax = axes[1]
-    by_quarter.boxplot("clouds", by="estimated_eighths", ax=ax)
+    by_quarter.boxplot("clouds", by="estimated_eighths", flierprops={'marker': '.', 'alpha': 0.5}, whis=(5, 95), capprops={'linewidth': 0}, medianprops={'color': 'black', 'linewidth': 3}, ax=ax)
     ax.set_title("Boxplot for fraction of GOES pixels by human estimate")
     ax.set_xlabel("Bands 2 & 4 brightness-based estimated cloud level (8ths)")
     ax.set_ylabel("Human estimated cloud fraction (eighths)")
@@ -1302,7 +1303,29 @@ def plot_norm_by_quarter(by_quarter, fig=None):
         by_quarter["estimated_eighths"],
         by_quarter["clouds"],
         bins=np.arange(-0.5, 9.5, 1),
+        cmap='cividis',
     )
+
+
+    ax.add_patch(
+        plt.Rectangle(
+            (-0.5, -0.5),      # lower-left corner (x, y)
+            3, 3,        # width, height
+            fill=False,
+            edgecolor='red',
+            linewidth=2
+        )
+    )
+    ax.add_patch(
+        plt.Rectangle(
+            (2.5, 2.5),      # lower-left corner (x, y)
+            6, 6,        # width, height
+            fill=False,
+            edgecolor='red',
+            linewidth=2
+        )
+    )
+    
     ax.set_xlabel("Bands 2 & 4 brightness-based estimated cloud level (8ths)")
     ax.set_ylabel("Human-judged cloud level (8ths)")
     ax.set_title("Bands 2 & 4 cloud vs. human judgment")
@@ -1369,32 +1392,31 @@ def plot_clear_sky_model(
     corr_col = ("4corr", value_key)
 
     if fig is None:
-        fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+        fig, axes = plt.subplots(1, 3, figsize=(18, 8))
     else:
         axes = np.array(fig.axes)
 
     clear_mask = samples.loc[:, ('human', 'clouds')] == 0
-        
-    cmap = cc.cm['isolum']
+
+    cmap = plt.cm.cividis
+    norm = matplotlib.colors.BoundaryNorm(np.arange(-0.5, 9.5, 1), cmap.N)
     alpha = 0.1
+
     ax = axes[0]
-    samples.plot.scatter(observed_col, pred_col, c=("human", "clouds"), s=1, alpha=alpha, cmap=cmap, ax=ax)
+    samples.plot.scatter(observed_col, pred_col, c=("human", "clouds"), s=1, alpha=alpha, cmap=cmap, norm=norm, ax=ax, colorbar=False)
     samples.loc[clear_mask, :].plot.scatter(observed_col, pred_col, c='black', s=1, alpha=alpha, ax=ax)
     ax.plot(samples[observed_col], samples[observed_col], color="red")
     ax.set_xlabel(f"band {y_band} {value_key}")
     ax.set_ylabel(f"clear prediction of band {y_band} {value_key} using band {x_band}")
-    ax.collections[0].colorbar.remove()
 
     ax = axes[1]
-    samples.plot.scatter(observed_col, corr_col, c=("human", "clouds"), s=1, alpha=alpha, cmap=cmap, ax=ax)
+    samples.plot.scatter(observed_col, corr_col, c=("human", "clouds"), s=1, alpha=alpha, cmap=cmap, norm=norm, ax=ax, colorbar=False)
     samples.loc[clear_mask, :].plot.scatter(observed_col, corr_col, c='black', s=1, alpha=alpha, ax=ax)
     ax.set_xlabel(f"band {y_band} {value_key}")
     ax.set_ylabel(f"band {y_band} {value_key} minus clear prediction using band {x_band}")
     ax.axhline(y=0, color='red')
     if cloudcut is not None:
         ax.axhline(y=cloudcut, color='blue')
-    colorbar = ax.collections[0].colorbar
-    colorbar.set_label("Human estimated eighths cloud-cover")
 
     ax = axes[2]
     corr_df = pd.DataFrame({
@@ -1405,6 +1427,18 @@ def plot_clear_sky_model(
     ax.set_ylabel(f"band {y_band} {value_key} minus clear prediction using band {x_band}")
     ax.set_title("")
 
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    fig.colorbar(
+        sm,
+        ax=axes[:2].tolist(),
+        orientation='horizontal',
+        label="Human estimated eighths cloud-cover",
+        ticks=range(9),
+        shrink=0.8,
+        pad=0.15,
+    )
+
     fig.suptitle("")
     return fig
 
@@ -1412,25 +1446,44 @@ def plot_clear_sky_model(
 def plot_per_pixel_models(multiband_samples, models, x_band=DEFAULT_BAND, y_band=CORRECTION_BAND, fig=None):
     """Grid of per-pixel scatter plots with each pixel's fitted clear-sky relation.
 
+    All subplots share the same axis limits and color scale (human cloud
+    eighths 0-8). Tick and axis labels appear only on the left column (y) and
+    bottom row (x). A single horizontal colorbar is placed at the bottom.
+
     The grid shape is derived from the actual number of pixels. `models` is a
     `fit_clear_sky_model` output keyed by pixel id; pixels with no model
-    (`None`) are plotted without an overlaid fit.
+    (`None`) are plotted without an overlaid fit line.
     """
     pixel_level = multiband_samples.index.get_level_values("pixel")
     pixel_ids = np.sort(pixel_level.unique())
     n_pixels = len(pixel_ids)
     n_cols = int(np.ceil(np.sqrt(n_pixels)))
     n_rows = int(np.ceil(n_pixels / n_cols))
-
+    scale = 2
+    
     if fig is None:
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(4 * n_cols, 4 * n_rows), squeeze=False)
+        fig, axes = plt.subplots(
+            n_rows, n_cols,
+            figsize=(scale * n_cols, scale * n_rows),
+            squeeze=False,
+            sharex=True, sharey=True,
+        )
     else:
         axes = np.array(fig.axes).reshape(n_rows, n_cols)
     flat_axes = axes.flatten()
 
+    x_col = (x_band, "value")
+    y_col = (y_band, "value")
+    cmap = plt.cm.cividis  # dark = clear (0 eighths), bright = overcast (8 eighths)
+    norm = matplotlib.colors.BoundaryNorm(np.arange(-0.5, 9.5, 1), cmap.N)
+
     clear_mask_all = multiband_samples[("human", "clouds")] == 0
     for band in (x_band, y_band):
         clear_mask_all = clear_mask_all & np.isfinite(multiband_samples[(band, "value")])
+
+    x_data = multiband_samples[x_col].dropna().values
+    y_data = multiband_samples[y_col].dropna().values
+    y_range = np.array([y_data.min(), y_data.max()])
 
     for ax, pixel_id in zip(flat_axes, pixel_ids):
         this_pixel = pixel_level == pixel_id
@@ -1438,46 +1491,189 @@ def plot_per_pixel_models(multiband_samples, models, x_band=DEFAULT_BAND, y_band
         pixel_clear = clear_mask_all.loc[this_pixel]
 
         pixel_samples.plot.scatter(
-            (x_band, "value"), (y_band, "value"), c=("human", "clouds"),
-            s=1, cmap=cc.cm["isolum"], alpha=0.5, ax=ax,
+            x_col, y_col, c=("human", "clouds"),
+            s=1, cmap=cmap, norm=norm, alpha=0.5, ax=ax, colorbar=False,
         )
         pixel_samples.loc[pixel_clear, :].plot.scatter(
-            (x_band, "value"), (y_band, "value"), s=1, c="black", ax=ax,
+            x_col, y_col, s=1, c="black", ax=ax,
         )
 
         model = models.get(pixel_id)
         if model is not None:
-            slope = model.coef_[0]
-            intercept = model.intercept_
-            ys = np.array(ax.get_ylim())
-            ax.plot(model.predict(ys.reshape(-1, 1)), ys, c='red')
+            ax.plot(model.predict(y_range.reshape(-1, 1)), y_range, c='red')
 
-        colorbar = ax.collections[0].colorbar
-        colorbar.set_label("Human estimated eighths cloud-cover")
-        ax.set_title(f"Pixel {pixel_id}")
+        ax.text(0.02, 0.98, f"Pixel {pixel_id}", transform=ax.transAxes,
+                ha='left', va='top', fontsize='small')
         ax.set_xlabel(f"band {x_band}")
         ax.set_ylabel(f"band {y_band}")
+        ax.grid(True)
+        ax.label_outer()
+        ax.set_ylim(y_range[0], 8000)
+        ax.set_xlim(x_data.min(), 20000)
 
     for ax in flat_axes[n_pixels:]:
         ax.set_visible(False)
 
-    fig.tight_layout()
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    fig.colorbar(
+        sm,
+        ax=flat_axes[:n_pixels].tolist(),
+        orientation='horizontal',
+        label="Human estimated eighths cloud-cover",
+        ticks=range(9),
+        shrink=0.6,
+        pad=0.05,
+    )
+
     return fig
 
 
-def plot_estimate_histogram(by_quarter, column="estimated_eighths", ax=None):
+def plot_estimate_histogram(by_quarter, column="estimated_eighths", quarter_reports=None, title=None, ax=None):
     """Histogram of estimated eighths, e.g. for the missing-quarter estimate.
 
     Mirrors the notebook's missing-quarter histograms (cells 27, 42, 59, 86).
+
+    If `quarter_reports` is supplied, overplots the distribution of
+    human-judged cloud eighths from the full CTIO record, reweighted by
+    month to match the month distribution of `by_quarter`. The reweighting
+    corrects for seasonal variation in cloud cover: without it, a direct
+    comparison would partly reflect differences in month mix rather than
+    differences in the estimate itself. Both series are shown as fractions
+    (density) so sample-size differences do not distort the comparison.
+
+    Parameters
+    ----------
+    by_quarter : pandas.DataFrame
+        As returned by `compute_by_quarter`; must be indexed by quarter levels
+        including ``month``.
+    column : str
+        Column to histogram; default ``"estimated_eighths"``.
+    quarter_reports : pandas.DataFrame or None
+        As returned by `load_quarter_reports`. Must have a ``clouds`` column
+        and a ``month`` index level. Sentinel quarters are excluded.
+    ax : matplotlib.axes.Axes or None
     """
     if ax is None:
         fig, ax = plt.subplots()
     else:
         fig = ax.figure
-    by_quarter[column].hist(bins=np.arange(-0.5, 9.5, 1), ax=ax)
-    ax.set_title(f"Quarters estimated from {column}")
-    ax.set_xlabel("Estimated eighths")
-    ax.set_ylabel("# quarters of nights")
+
+    bins = np.arange(-0.5, 9.5, 1)
+    by_quarter[column].hist(bins=bins, density=True, rwidth=0.85, ax=ax, label="GOES-13 measurements for missing nights in 2015")
+
+    if quarter_reports is not None:
+        missing_month_frac = pd.Series(
+            by_quarter.index.get_level_values("month")
+        ).value_counts(normalize=True)
+
+        known = quarter_reports[quarter_reports["clouds"] != MISSING_CLOUDS_SENTINEL]
+        global_months = pd.Series(known.index.get_level_values("month"))
+        global_month_frac = global_months.value_counts(normalize=True)
+
+        # Weight for each global quarter: its month's target share divided by
+        # its month's actual share; months absent from the missing data get 0.
+        weight_by_month = (missing_month_frac / global_month_frac).fillna(0)
+        weights = global_months.map(weight_by_month).values
+
+        ax.hist(
+            known["clouds"].values, bins=bins, weights=weights, density=True,
+            histtype="step", color="red",
+            label="CTIO night report global distribution, reweighted by month",
+        )
+        ax.legend()
+
+    ax.set_xticks(range(9))
+    ax.xaxis.grid(False)
+    ax.set_ylim(0, 0.7)
+    if title is None:
+        ax.set_title(f"Quarters estimated from {column}")
+    else:
+        ax.set_title(title)
+    ax.set_xlabel("Clouds, in eighths")
+    ax.set_ylabel("Fraction of quarters")
+    return fig
+
+
+def plot_window_comparison(estimates, window_size=None, include_human=True, fig=None):
+    """Side-by-side 2-D histograms comparing cloud estimates across pixel window sizes.
+
+    Each panel is a 2-D histogram with one window's estimated eighths on the
+    x-axis and the reference ``window_size``'s estimated eighths on the y-axis.
+    When ``include_human`` is True, the first panel instead shows human-judged
+    eighths (x) versus the reference window's estimated eighths (y).
+
+    Two red rectangles mark the observable (lower-left) and non-observable
+    (upper-right) agreement regions in every panel, matching the rectangles in
+    `plot_norm_by_quarter`.
+
+    Parameters
+    ----------
+    estimates : pandas.DataFrame
+        MultiIndex-column frame with a ``'window'`` level, assembled by stacking
+        per-window ``compute_by_quarter`` outputs.  Must contain at least
+        ``(window_size, 'estimated_eighths')`` and, when ``include_human`` is
+        True, ``(window_size, 'clouds')``.
+    window_size : int or None
+        Reference window size plotted on the y-axis of every panel.  Defaults
+        to ``DEFAULT_WINDOW_SIZE``.
+    include_human : bool
+        If True, the first panel shows human-judged vs. estimated eighths for
+        ``window_size`` (use for calibration-sample comparisons).  If False,
+        all panels compare other window sizes against ``window_size`` (use for
+        missing-quarter comparisons where no human label exists).
+    fig : matplotlib.figure.Figure or None
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
+    if window_size is None:
+        window_size = DEFAULT_WINDOW_SIZE
+
+    all_windows = estimates.columns.get_level_values("window").unique()
+    comparison_windows = [w for w in all_windows if w != window_size]
+
+    n_plots = len(comparison_windows) + (1 if include_human else 0)
+    height = 4
+    width = 0.9 * n_plots * height
+
+    if fig is None:
+        fig, axes = plt.subplots(1, n_plots, figsize=(width, height), squeeze=False)
+        axes = axes[0]
+    else:
+        axes = np.array(fig.axes)
+
+    norm = matplotlib.colors.Normalize(vmin=0, vmax=100)
+    bins = np.arange(-0.5, 9.5, 1)
+
+    def _add_agreement_boxes(ax):
+        ax.add_patch(plt.Rectangle((-0.5, -0.5), 3, 3, fill=False, edgecolor="red", linewidth=2))
+        ax.add_patch(plt.Rectangle((2.5, 2.5), 6, 6, fill=False, edgecolor="red", linewidth=2))
+
+    ref_eighths = estimates[(window_size, "estimated_eighths")]
+    ax_iter = iter(axes)
+
+    if include_human:
+        ax = next(ax_iter)
+        last_hist = ax.hist2d(
+            estimates[(window_size, "clouds")], ref_eighths,
+            bins=bins, norm=norm, cmap="cividis_r",
+        )
+        _add_agreement_boxes(ax)
+        ax.set_title("human estimate")
+
+    for comp_window in comparison_windows:
+        ax = next(ax_iter)
+        last_hist = ax.hist2d(
+            estimates[(comp_window, "estimated_eighths")], ref_eighths,
+            bins=bins, norm=norm, cmap="cividis_r",
+        )
+        _add_agreement_boxes(ax)
+        ax.set_title(f"{comp_window}x{comp_window} pix. sample")
+
+    axes[0].set_ylabel(f"{window_size}x{window_size} pix. sample")
+    fig.colorbar(last_hist[3], ax=axes.tolist(), orientation="horizontal", label="# quarters")
     return fig
 
 
