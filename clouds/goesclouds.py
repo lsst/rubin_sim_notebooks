@@ -458,7 +458,7 @@ def extract_band_samples(
     window_size=DEFAULT_WINDOW_SIZE,
     data_dir=DEFAULT_DATA_DIR,
     time_as_datetime=True,
-    max_timestamp_offset_days=2,
+    max_timestamp_offset_days=0,
 ):
     """Read the pixels nearest CTIO out of every downloaded image in a band.
 
@@ -544,6 +544,7 @@ def extract_band_samples(
             if offset is not None and not (
                 start_time - offset <= image_time <= end_time + offset
             ):
+                continue
                 logger.warning(
                     f"skipping {fname}: timestamp {image_time} is more than "
                     f"{max_timestamp_offset_days} day(s) outside the quarter "
@@ -1560,7 +1561,7 @@ def plot_estimate_histogram(by_quarter, column="estimated_eighths", quarter_repo
         fig = ax.figure
 
     bins = np.arange(-0.5, 9.5, 1)
-    by_quarter[column].hist(bins=bins, density=True, rwidth=0.85, ax=ax, label="GOES-13 measurements for missing nights in 2015")
+    by_quarter[column].hist(bins=bins, density=True, rwidth=0.85, ax=ax, label="GOES-13 measurements for missing nights")
 
     if quarter_reports is not None:
         missing_month_frac = pd.Series(
