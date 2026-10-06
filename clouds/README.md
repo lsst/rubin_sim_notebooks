@@ -14,3 +14,4 @@ The notebooks should be run in this order:
 | `fill_missing_clouds.ipynb`  | clouds_ctio_blanco.h5, satellite_cloudy.txt | clouds.h5, clouds.txt |
 | `build_cloud_db.ipynb`  | clouds.h5 | clouds.db, clouds.db.gz|
 | `examine_clouds.ipynb`  | | |
+| `cloud_origin_plot.ipynb` | clouds.h5 | source_by_time.png |
