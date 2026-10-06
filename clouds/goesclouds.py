@@ -555,7 +555,17 @@ def extract_band_samples(
             try:
                 netcdf_data = scipy.io.netcdf_file(fname, "r", mmap=False)
             except (OSError, TypeError, ValueError):
-                logger.warning(f"could not read {fname}")
+                error_strings = (
+                    'No images satisfy the selection criteria',
+                )
+                try:
+                    with open(fname, 'r') as data_io:
+                        data = data_io.read()
+                        for error_string in error_strings:
+                            if error_string in data:
+                                logger.warning(f"could not read {fname}: {error_string}") 
+                except:
+                    logger.warning(f"could not read {fname}")
                 continue
 
             try:
