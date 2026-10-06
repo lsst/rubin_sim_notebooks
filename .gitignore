@@ -133,3 +133,8 @@ dmypy.json
 *.npz
 *.pdf
 *.png
+
+# cached cloud data
+clouds/data/
+clouds/ersst_cache/
+clouds/sds_inventories.h5
